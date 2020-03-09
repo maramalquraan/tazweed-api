@@ -7,20 +7,20 @@ export const generate_id = (len = 17) => {
     return randomId(len, pattern);
 }
 
-export const sendBookEmail = async (buyer_email) => {
+export const sendBookEmail = async (buyer_email, time) => {
     const nodemailer = require("nodemailer");
     const transporter = nodemailer.createTransport({
-        service: 'Microsoft',
+        service: 'Gmail',
         auth: {
-            user: 'secret',
-            pass: 'secret!'
+            user: 'help.tazweed@gmail.com',
+            pass: process.env.password
         }
     });
     const options = {
         from: 'supoort.tazweed@outlook.com',
         to: buyer_email,
         subject: 'Book a slot',
-        text: 'Slot is booked successfully!'
+        text: 'Slot is booked successfully, with the following time: ' + time
     };
 
     transporter.sendMail(options, function (error, info) {
