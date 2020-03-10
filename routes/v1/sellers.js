@@ -106,11 +106,10 @@ router.post("/login", login_validation, async (req, res) => {
   }
 });
 
-router.post("/:id/slots/add", (request, response) => {
-  const collection = database.collection("Sellers");
-  const seller_id = request.params.id;
-  let slot_time;
-  slot_time = request.body.slot_time;
+router.post("/:id/slots/add", async (request, response) => {
+  const collection = database.collection("Sellers"),
+    seller_id = request.params.id,
+    slot_time = request.body.slot_time;
   collection.updateOne(
     { _id: seller_id },
     { $push: { available_slots: slot_time } },

@@ -3,6 +3,11 @@ import jwt from "jsonwebtoken";
 import { secret } from "./../config/passport";
 import Bcrypt from "bcrypt";
 
+const dotenv = require("dotenv");
+dotenv.config();
+const nodemailer = require("nodemailer"),
+  password = process.env.password;
+
 export const generate_id = (len = 17) => {
   var randomId = require("random-id");
   // pattern to determin how the id will be generated
@@ -13,11 +18,6 @@ export const generate_id = (len = 17) => {
 };
 
 export const sendBookEmail = async (buyer_email, time) => {
-  const dotenv = require("dotenv");
-  dotenv.config();
-  const nodemailer = require("nodemailer"),
-    password = process.env.password;
-
   const transporter = nodemailer.createTransport({
     service: "gmail",
     auth: {
@@ -33,6 +33,62 @@ export const sendBookEmail = async (buyer_email, time) => {
     to: buyer_email || "quraanmaram@gmail.com", // please add a real email
     subject: "Book a slot",
     text: `You requested to book an appointment at ${time} successfully! We will get back to as soon as possible for more information`
+  };
+
+  transporter.sendMail(options, function(error, info) {
+    if (error) {
+      console.log("error in sending email : ", error);
+    } else {
+      console.log("Email sent: " + info.response);
+    }
+  });
+  return "done";
+};
+
+export const sendApprovalEmail = async (buyer_email, time) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: "help.tazweed@gmail.com", // please add a real email
+      pass: password // please add the real email's password
+    },
+    tls: {
+      rejectUnauthorized: false
+    }
+  });
+  const options = {
+    from: "help.tazweed@gmail.com", // please add a real email
+    to: buyer_email || "quraanmaram@gmail.com", // please add a real email
+    subject: "Approve a slot",
+    text: `You requested to book an appointment at ${time} is approved buy the seller! We will get back to as soon as possible for more information`
+  };
+
+  transporter.sendMail(options, function(error, info) {
+    if (error) {
+      console.log("error in sending email : ", error);
+    } else {
+      console.log("Email sent: " + info.response);
+    }
+  });
+  return "done";
+};
+
+export const sendRejectlEmail = async (buyer_email, time) => {
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: "help.tazweed@gmail.com", // please add a real email
+      pass: password // please add the real email's password
+    },
+    tls: {
+      rejectUnauthorized: false
+    }
+  });
+  const options = {
+    from: "help.tazweed@gmail.com", // please add a real email
+    to: buyer_email || "quraanmaram@gmail.com", // please add a real email
+    subject: "Reject a slot",
+    text: `You requested to book an appointment at ${time} is rejectted buy the seller!, Please try another slot`
   };
 
   transporter.sendMail(options, function(error, info) {
