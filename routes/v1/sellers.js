@@ -1,44 +1,130 @@
-import { Router } from 'express';
-import {database} from './../../index';
-import { generate_id } from './../../helpers/helpers';
-
+import { Router } from "express";
+import { database } from "./../../index";
+import {
+  generate_id,
+  generateToken,
+  login_validation,
+  comparePassword
+} from "./../../helpers/helpers";
+import { validationResult } from "express-validator";
+import moment from "moment";
+import bcrypt from "bcrypt";
 
 const router = Router();
 
-
-router.get("/", (request, response) => {    
-    const collection = database.collection("Sellers");
-    // get sellers info with available slots >= today
-    collection.find({}).toArray((error, result) => {
-        if (error) {
-            return response.status(500).send(error);
-        }
-        response.send({ status: 200, data: result });
-    });
+router.get("/", (request, response) => {
+  const collection = database.collection("Sellers");
+  // get sellers info with available slots >= today
+  collection.find({}).toArray((error, result) => {
+    if (error) {
+      return response.status(500).send(error);
+    }
+    response.send({ status: 200, data: result });
+  });
 });
 
+router.post("/signup", login_validation, async (req, res) => {
+  const collection = database.collection("Sellers");
+  try {
+    // validate Signup
+    validationResult(req).throw();
 
-router.post("/add", (request, response) => {
-    const collection = database.collection("Sellers");
-    const seller = { _id: generate_id(), available_slots: [new Date().toGMTString(), "Mon, 09 Mar 2020 18:50 GMT", "Mon, 09 Mar 2020 17:00 GMT"], created_at: new Date(), name: "Issa" };
-    collection.insert(seller, (error, result) => {
-        if (error) {
-            return response.status(500).send(error);
-        }
-        response.send({ status: 200, message: "seller is added successfully!" });
+    // check if the email is already exist
+    let { email, password, name } = req.body;
+    email = (email + "").toLowerCase();
+
+    if (!password || password.length < 6)
+      throw Error({
+        status: 400,
+        message: "Password length should be 6 or more characters"
+      });
+
+    const existed = await collection.findOne({ email });
+    if (existed) {
+      return res.status(400).json({
+        status: 400,
+        message: "Email Already Exists! Login or choose another email."
+      });
+    }
+
+    const hash = await bcrypt.hash(password, 1);
+
+    const seller = { _id: generate_id(), password: hash, name, email };
+    const token = generateToken(seller);
+
+    await collection.insertOne(seller, (error, result) => {
+      if (error) {
+        return res.status(500).send(error);
+      }
+      return res.status(200).send({
+        status: 200,
+        message: "seller account is added successfully!",
+        token
+      });
     });
+  } catch (err) {
+    return res.status(400).json({
+      status: 400,
+      message: "Email and/or Password are not valid"
+    });
+  }
+});
+
+router.post("/login", login_validation, async (req, res) => {
+  try {
+    const collection = database.collection("Sellers");
+    validationResult(req).throw();
+    let { email, password } = req.body;
+    email = (email + "").toLowerCase();
+    const seller = await collection.findOne({ email });
+
+    if (!seller)
+      res.status(400).send({
+        status: 400,
+        message: "Email and/or Password are not correct"
+      });
+
+    const isPassMatch = await comparePassword(password, seller);
+
+    if (isPassMatch) {
+      const token = generateToken(seller);
+      res.status(200).send({
+        status: 200,
+        message: "Logged In Successfully",
+        token,
+        seller
+      });
+    } else
+      res.status(400).send({
+        status: 400,
+        message: "Email and/or Password are not correct"
+      });
+  } catch (err) {
+    res
+      .status(400)
+      .send({ status: 400, message: "Email and/or Password are not correct" });
+  }
 });
 
 router.post("/:id/slots/add", (request, response) => {
-    const collection = database.collection("Sellers");
-    const seller_id = request.params.id;
-    const slot = request.body.slot || "Tue, 10 Mar 2020 18:00 GMT";
-    collection.updateOne({ _id: seller_id }, { $push: { available_slots: slot } }, (error, result) => {
-        if (error) {
-            return response.status(500).send(error);
-        }
-        response.send({ status: 200, message: "Slot is added successfully!" });
-    });
+  const collection = database.collection("Sellers");
+  const seller_id = request.params.id;
+  let slot;
+  if (!request.body.slot) {
+    slot = moment(new Date()).format("ddd, MMM Do YY, hh:mm");
+  } else {
+    slot = moment(request.body.slot).format("ddd, MMM Do YY, hh:mm");
+  }
+  collection.updateOne(
+    { _id: seller_id },
+    { $push: { available_slots: slot } },
+    (error, result) => {
+      if (error) {
+        return response.status(500).send(error);
+      }
+      response.send({ status: 200, message: "Slot is added successfully!" });
+    }
+  );
 });
 
 export default router;
