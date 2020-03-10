@@ -23,13 +23,16 @@ export const sendBookEmail = async (buyer_email, time) => {
     auth: {
       user: "help.tazweed@gmail.com", // please add a real email
       pass: password // please add the real email's password
+    },
+    tls: {
+      rejectUnauthorized: false
     }
   });
   const options = {
     from: "help.tazweed@gmail.com", // please add a real email
     to: buyer_email || "quraanmaram@gmail.com", // please add a real email
     subject: "Book a slot",
-    text: `You requested to book an appointment at ${slot_time} successfully! We will get back to as soon as possible for more information`
+    text: `You requested to book an appointment at ${time} successfully! We will get back to as soon as possible for more information`
   };
 
   transporter.sendMail(options, function(error, info) {

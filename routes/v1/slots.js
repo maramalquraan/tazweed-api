@@ -24,15 +24,10 @@ router.get("/:seller_id", (request, response) => {
 });
 
 router.post("/book", (request, response) => {
-  collection = database.collection("Slots");
-  const slot_info = request.body.slot || {
-    seller_id: "vyOORmHdYCYKZS2n6",
-    slot_time: "Fri, 06 Mar 2020 18:53:33 GMT",
-    email: "quraanmaram@gmail.com",
-    status: "requested"
-  };
+  const collection = database.collection("Slots");
+  const slot_info = request.body;
   slot_info["_id"] = generate_id();
-  collection.insert(slot_info, (error, result) => {
+  collection.insertOne(slot_info, (error, result) => {
     if (error) {
       return response.status(500).send({
         status: 500,

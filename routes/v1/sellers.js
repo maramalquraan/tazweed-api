@@ -7,7 +7,6 @@ import {
   comparePassword
 } from "./../../helpers/helpers";
 import { validationResult } from "express-validator";
-import moment from "moment";
 import bcrypt from "bcrypt";
 
 const router = Router();
@@ -59,7 +58,8 @@ router.post("/signup", login_validation, async (req, res) => {
       return res.status(200).send({
         status: 200,
         message: "seller account is added successfully!",
-        token
+        token,
+        seller
       });
     });
   } catch (err) {
@@ -109,20 +109,25 @@ router.post("/login", login_validation, async (req, res) => {
 router.post("/:id/slots/add", (request, response) => {
   const collection = database.collection("Sellers");
   const seller_id = request.params.id;
-  let slot;
-  if (!request.body.slot) {
-    slot = moment(new Date()).format("ddd, MMM Do YY, hh:mm");
-  } else {
-    slot = moment(request.body.slot).format("ddd, MMM Do YY, hh:mm");
-  }
+  let slot_time;
+  slot_time = request.body.slot_time;
   collection.updateOne(
     { _id: seller_id },
-    { $push: { available_slots: slot } },
+    { $push: { available_slots: slot_time } },
     (error, result) => {
       if (error) {
         return response.status(500).send(error);
       }
-      response.send({ status: 200, message: "Slot is added successfully!" });
+      collection.find({}).toArray((error, result) => {
+        if (error) {
+          return response.status(500).send(error);
+        }
+        response.send({
+          status: 200,
+          data: result,
+          message: "Slot Time is added successfully!"
+        });
+      });
     }
   );
 });
