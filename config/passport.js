@@ -11,6 +11,8 @@ const options = {
 
 const strategy = new Strategy(options, function(payload, next) {
   const collection = database.collection("Sellers");
+  console.log("coll", collection);
+
   collection.findOne({ _id: payload._id }, next);
 });
 

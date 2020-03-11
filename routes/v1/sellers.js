@@ -14,11 +14,31 @@ const router = Router();
 router.get("/", (request, response) => {
   const collection = database.collection("Sellers");
   // get sellers info with available slots >= today
-  collection.find({}).toArray((error, result) => {
+  collection
+    .find({})
+    .sort({ created_at: -1 })
+    .toArray((error, result) => {
+      if (error) {
+        return response.status(500).send(error);
+      }
+      response.send({ status: 200, data: result });
+    });
+});
+
+router.get("/:seller_id", (request, response) => {
+  const collection = database.collection("Sellers"),
+    seller_id = request.params.seller_id;
+  collection.find({ _id: seller_id }).toArray((error, result) => {
     if (error) {
-      return response.status(500).send(error);
+      return response.status(404).send({
+        status: 404,
+        message: "unauthorized"
+      });
     }
-    response.send({ status: 200, data: result });
+    response.status(200).send({
+      status: 200,
+      seller: result[0]
+    });
   });
 });
 
@@ -48,7 +68,13 @@ router.post("/signup", login_validation, async (req, res) => {
 
     const hash = await bcrypt.hash(password, 1);
 
-    const seller = { _id: generate_id(), password: hash, name, email };
+    const seller = {
+      _id: generate_id(),
+      password: hash,
+      name,
+      email,
+      created_at: new Date()
+    };
     const token = generateToken(seller);
 
     await collection.insertOne(seller, (error, result) => {
@@ -112,21 +138,24 @@ router.post("/:id/slots/add", async (request, response) => {
     slot_time = request.body.slot_time;
   collection.updateOne(
     { _id: seller_id },
-    { $push: { available_slots: slot_time } },
+    { $push: { available_slots: { $each: [slot_time], $sort: -1 } } },
     (error, result) => {
       if (error) {
         return response.status(500).send(error);
       }
-      collection.find({}).toArray((error, result) => {
-        if (error) {
-          return response.status(500).send(error);
-        }
-        response.send({
-          status: 200,
-          data: result,
-          message: "Slot Time is added successfully!"
+      collection
+        .find({})
+        .sort({ created_at: -1 })
+        .toArray((error, result) => {
+          if (error) {
+            return response.status(500).send(error);
+          }
+          response.send({
+            status: 200,
+            data: result,
+            message: "Slot Time is added successfully!"
+          });
         });
-      });
     }
   );
 });
